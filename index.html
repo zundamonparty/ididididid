@@ -55,14 +55,14 @@ body{
 
 #feedback{
     height:40px;
-    font-size:28px;
+    font-size:30px;
     font-weight:bold;
     margin-top:10px;
 }
 
 #game{
     position:relative;
-    width:800px;
+    width:900px;
     height:700px;
     margin:10px auto;
     border:2px solid #444;
@@ -74,41 +74,42 @@ body{
     position:absolute;
     width:100px;
     height:100%;
-    border-left:1px solid #333;
-    border-right:1px solid #333;
 }
 
 .target{
     position:absolute;
-    bottom:50px;
+    bottom:45px;
     left:50%;
     transform:translateX(-50%);
-    font-size:60px;
+    font-size:90px; /* Bigger circles */
     transition:all 0.15s;
+    user-select:none;
 }
 
 .target.hit{
-    transform:translateX(-50%) scale(1.35);
+    transform:translateX(-50%) scale(1.3);
     text-shadow:
-        0 0 10px white,
-        0 0 20px white,
-        0 0 35px white;
+        0 0 15px white,
+        0 0 30px white,
+        0 0 50px white;
 }
 
 .key{
     position:absolute;
-    bottom:10px;
+    bottom:8px;
     left:50%;
     transform:translateX(-50%);
-    font-size:24px;
+    font-size:28px;
     color:#bbb;
+    font-weight:bold;
 }
 
 .note{
     position:absolute;
-    font-size:50px;
     left:50%;
     transform:translateX(-50%);
+    font-size:75px; /* Bigger falling notes */
+    user-select:none;
 }
 
 .perfect{
@@ -132,7 +133,7 @@ body{
 
 <div id="menu">
     <h1>Hand-Eye Coordination Trainer</h1>
-    <p>Press A S D F H J K L when notes reach the circles.</p>
+    <p>Press A S D F H J K L when the falling circles reach the targets.</p>
     <button id="startButton">Start</button>
 </div>
 
@@ -150,6 +151,20 @@ const startButton = document.getElementById("startButton");
 const menu = document.getElementById("menu");
 
 const keys = ["A","S","D","F","H","J","K","L"];
+
+/* Gap between F and H */
+const lanePositions = [
+    20,   // A
+    120,  // S
+    220,  // D
+    320,  // F
+
+    500,  // H
+    600,  // J
+    700,  // K
+    800   // L
+];
+
 const laneWidth = 100;
 
 let score = 0;
@@ -163,7 +178,7 @@ for(let i=0;i<8;i++){
 
     const lane = document.createElement("div");
     lane.className = "lane";
-    lane.style.left = (i * laneWidth) + "px";
+    lane.style.left = lanePositions[i] + "px";
 
     const target = document.createElement("div");
     target.className = "target";
@@ -220,15 +235,15 @@ function spawnNote(){
     note.textContent = "●";
 
     note.style.left =
-        (lane * laneWidth + laneWidth/2) + "px";
+        (lanePositions[lane] + laneWidth/2) + "px";
 
-    note.style.top = "-60px";
+    note.style.top = "-80px";
 
     game.appendChild(note);
 
     notes.push({
         lane: lane,
-        y: -60,
+        y: -80,
         element: note
     });
 }
@@ -242,7 +257,7 @@ startButton.addEventListener("click",()=>{
     spawnInterval = setInterval(spawnNote,800);
 });
 
-const hitLine = 590;
+const hitLine = 555;
 
 document.addEventListener("keydown",(e)=>{
 
@@ -276,9 +291,8 @@ document.addEventListener("keydown",(e)=>{
     if(!closest){
 
         score--;
-
         updateScore();
-        showFeedback("Wrong Key","miss");
+        showFeedback("MISS -1","miss");
         return;
     }
 
@@ -289,12 +303,12 @@ document.addEventListener("keydown",(e)=>{
         gained = 3;
         showFeedback("PERFECT +3","perfect");
 
-    }else if(closestDistance <= 38){
+    }else if(closestDistance <= 40){
 
         gained = 2;
         showFeedback("GOOD +2","good");
 
-    }else if(closestDistance <= 65){
+    }else if(closestDistance <= 70){
 
         gained = 1;
         showFeedback("OKAY +1","okay");
@@ -328,7 +342,7 @@ function gameLoop(){
             notes[i].element.style.top =
                 notes[i].y + "px";
 
-            if(notes[i].y > 730){
+            if(notes[i].y > 760){
 
                 notes[i].element.remove();
                 notes.splice(i,1);
