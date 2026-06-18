@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hand-Eye Coordination Trainer</title>
+
+<style>
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    background:#111;
+    color:white;
+    font-family:Arial,sans-serif;
+    overflow:hidden;
+    text-align:center;
+}
+
+#menu{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.95);
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    z-index:100;
+}
+
+#menu h1{
+    margin:0;
+    font-size:42px;
+}
+
+#menu p{
+    color:#aaa;
+    margin:15px 0 30px;
+}
+
+#startButton{
+    font-size:24px;
+    padding:15px 40px;
+    border:none;
+    border-radius:12px;
+    cursor:pointer;
+}
+
+#score{
+    font-size:32px;
+    margin-top:15px;
+}
+
+#feedback{
+    height:40px;
+    font-size:28px;
+    font-weight:bold;
+    margin-top:10px;
+}
+
+#game{
+    position:relative;
+    width:800px;
+    height:700px;
+    margin:10px auto;
+    border:2px solid #444;
+    background:#181818;
+    overflow:hidden;
+}
+
+.lane{
+    position:absolute;
+    width:100px;
+    height:100%;
+    border-left:1px solid #333;
+    border-right:1px solid #333;
+}
+
+.target{
+    position:absolute;
+    bottom:50px;
+    left:50%;
+    transform:translateX(-50%);
+    font-size:60px;
+    transition:all 0.15s;
+}
+
+.target.hit{
+    transform:translateX(-50%) scale(1.35);
+    text-shadow:
+        0 0 10px white,
+        0 0 20px white,
+        0 0 35px white;
+}
+
+.key{
+    position:absolute;
+    bottom:10px;
+    left:50%;
+    transform:translateX(-50%);
+    font-size:24px;
+    color:#bbb;
+}
+
+.note{
+    position:absolute;
+    font-size:50px;
+    left:50%;
+    transform:translateX(-50%);
+}
+
+.perfect{
+    color:#6dff6d;
+}
+
+.good{
+    color:#ffe66d;
+}
+
+.okay{
+    color:#ffb14a;
+}
+
+.miss{
+    color:#ff6666;
+}
+</style>
+</head>
+<body>
+
+<div id="menu">
+    <h1>Hand-Eye Coordination Trainer</h1>
+    <p>Press A S D F H J K L when notes reach the circles.</p>
+    <button id="startButton">Start</button>
+</div>
+
+<div id="score">Score: 0</div>
+<div id="feedback"></div>
+
+<div id="game"></div>
+
+<script>
+
+const game = document.getElementById("game");
+const scoreDisplay = document.getElementById("score");
+const feedback = document.getElementById("feedback");
+const startButton = document.getElementById("startButton");
+const menu = document.getElementById("menu");
+
+const keys = ["A","S","D","F","H","J","K","L"];
+const laneWidth = 100;
+
+let score = 0;
+let notes = [];
+let gameStarted = false;
+let spawnInterval;
+
+const targets = [];
+
+for(let i=0;i<8;i++){
+
+    const lane = document.createElement("div");
+    lane.className = "lane";
+    lane.style.left = (i * laneWidth) + "px";
+
+    const target = document.createElement("div");
+    target.className = "target";
+    target.textContent = "○";
+
+    const key = document.createElement("div");
+    key.className = "key";
+    key.textContent = keys[i];
+
+    lane.appendChild(target);
+    lane.appendChild(key);
+
+    game.appendChild(lane);
+
+    targets.push(target);
+}
+
+function updateScore(){
+    scoreDisplay.textContent = "Score: " + score;
+}
+
+function pulseLane(index){
+
+    const target = targets[index];
+
+    target.classList.add("hit");
+
+    setTimeout(()=>{
+        target.classList.remove("hit");
+    },150);
+}
+
+function showFeedback(text,className){
+
+    feedback.textContent = text;
+    feedback.className = className;
+
+    clearTimeout(showFeedback.timeout);
+
+    showFeedback.timeout = setTimeout(()=>{
+        feedback.textContent = "";
+        feedback.className = "";
+    },300);
+}
+
+function spawnNote(){
+
+    if(!gameStarted) return;
+
+    const lane = Math.floor(Math.random()*8);
+
+    const note = document.createElement("div");
+    note.className = "note";
+    note.textContent = "●";
+
+    note.style.left =
+        (lane * laneWidth + laneWidth/2) + "px";
+
+    note.style.top = "-60px";
+
+    game.appendChild(note);
+
+    notes.push({
+        lane: lane,
+        y: -60,
+        element: note
+    });
+}
+
+startButton.addEventListener("click",()=>{
+
+    menu.style.display = "none";
+
+    gameStarted = true;
+
+    spawnInterval = setInterval(spawnNote,800);
+});
+
+const hitLine = 590;
+
+document.addEventListener("keydown",(e)=>{
+
+    if(!gameStarted) return;
+
+    const key = e.key.toUpperCase();
+    const lane = keys.indexOf(key);
+
+    if(lane === -1) return;
+
+    let closest = null;
+    let closestIndex = -1;
+    let closestDistance = Infinity;
+
+    for(let i=0;i<notes.length;i++){
+
+        if(notes[i].lane !== lane)
+            continue;
+
+        const distance =
+            Math.abs(notes[i].y - hitLine);
+
+        if(distance < closestDistance){
+
+            closestDistance = distance;
+            closest = notes[i];
+            closestIndex = i;
+        }
+    }
+
+    if(!closest){
+
+        score--;
+
+        updateScore();
+        showFeedback("Wrong Key","miss");
+        return;
+    }
+
+    let gained = 0;
+
+    if(closestDistance <= 18){
+
+        gained = 3;
+        showFeedback("PERFECT +3","perfect");
+
+    }else if(closestDistance <= 38){
+
+        gained = 2;
+        showFeedback("GOOD +2","good");
+
+    }else if(closestDistance <= 65){
+
+        gained = 1;
+        showFeedback("OKAY +1","okay");
+
+    }else{
+
+        score--;
+        updateScore();
+        showFeedback("MISS -1","miss");
+        return;
+    }
+
+    pulseLane(lane);
+
+    score += gained;
+
+    closest.element.remove();
+    notes.splice(closestIndex,1);
+
+    updateScore();
+});
+
+function gameLoop(){
+
+    if(gameStarted){
+
+        for(let i=notes.length-1;i>=0;i--){
+
+            notes[i].y += 4;
+
+            notes[i].element.style.top =
+                notes[i].y + "px";
+
+            if(notes[i].y > 730){
+
+                notes[i].element.remove();
+                notes.splice(i,1);
+            }
+        }
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+updateScore();
+gameLoop();
+
+</script>
+
+</body>
+</html>
